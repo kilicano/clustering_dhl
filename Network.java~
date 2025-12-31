@@ -1,0 +1,135 @@
+import java.util.ArrayList;
+import java.io.*;
+import java.util.*;
+
+public class Network {
+	private ArrayList<Nodes> locations;
+	private ArrayList<Edges> originEdges;
+	private ArrayList<Edges> clusterEdges;
+	private ArrayList<Edges> destEdges;
+
+
+	//Method that reads data file
+	public Network(String filename1, String filename2)
+			throws java.io.FileNotFoundException{
+		int placeholder = 0;
+		File file1 = new File(filename1);
+		File file2 = new File(filename2);
+		//File file3 = new File(filename3);
+		Scanner input1 = new Scanner(file1);
+		Scanner input2 = new Scanner(file2);
+		//Scanner input3 = new Scanner(file3);
+		this.locations = new ArrayList<Nodes>();
+		this.originEdges = new ArrayList<Edges>();
+		this.clusterEdges = new ArrayList<Edges>();
+		this.destEdges = new ArrayList<Edges>();
+
+		//Create all nodes and edges
+		while(input1.hasNext()){
+			double orginClustLat = input1.nextDouble();
+			double orginClustLong = input1.nextDouble();
+			double orginLat = input1.nextDouble();
+			double orginLong = input1.nextDouble();
+			double destClustLat = input1.nextDouble();
+			double destClustLong = input1.nextDouble();
+			double destLat = input1.nextDouble();
+			double destLong = input1.nextDouble();
+			double clusterDist = input1.nextDouble();
+
+			Nodes originClust = new Nodes(orginClustLat, orginClustLong);
+			Nodes originLoc = new Nodes(orginLat, orginLong);
+			Nodes destClust = new Nodes(destClustLat, destClustLong);
+			Nodes destLoc = new Nodes(destLat, destLong);
+
+			Edges originEdge = new Edges(calcDistance(orginClustLat, orginClustLong, orginLat, orginLong), originLoc, originClust, placeholder, placeholder, placeholder);
+			Edges clusterEdge = new Edges(clusterDist, originClust, destClust, placeholder, placeholder, placeholder);
+			Edges destEdge = new Edges(calcDistance(destClustLat, destClustLong, destLat, destLong), destClust, destLoc, placeholder, placeholder, placeholder);
+
+			originEdges.add(originEdge);
+			clusterEdges.add(clusterEdge);
+			destEdges.add(destEdge);
+
+			if(uniqueLocation(locations, originClust)){
+				locations.add(originClust);
+			}
+			else if(uniqueLocation(locations, originLoc)){
+				locations.add(originLoc);
+			}
+			else if(uniqueLocation(locations, destClust)){
+				locations.add(destClust);
+			}
+			else if(uniqueLocation(locations, destLoc)){
+				locations.add(destLoc);
+			}
+
+			aggregates(input2);
+			//aggregates(input3);
+
+		}
+
+	}
+	public boolean uniqueLocation(ArrayList<Nodes> nodes, Nodes location){
+		for(int i=0; i<nodes.size(); i++){
+			if(nodes.get(i)==location){
+				return false;
+			}
+		}
+		return true;
+	}
+
+	//Calculates distance between two coordinates with respect to the curvature of the earth (haversine)
+	//Radius of the earth 6371km 
+	public double calcDistance(double latitude1, double latitude2, double longitude1, double longitude2){
+		int radius = 6371;
+
+		double thetaLat = latitude2 - latitude1;
+		double thetaLong = longitude2 - longitude1;
+
+		double rad1 = Math.toRadians(thetaLat);
+		double rad2 = Math.toRadians(thetaLong);
+		double rad3 = Math.toRadians(latitude1);
+		double rad4 = Math.toRadians(latitude2);
+
+		double distance = 2 * radius * Math.asin(Math.sqrt((Math.pow(Math.sin(rad1 / 2), 2) + Math.cos(rad3) * Math.cos(rad4) * (Math.pow(Math.sin(rad2 / 2), 2)))));
+
+		return distance;
+	}
+
+
+	public void printEdges(){
+		for(int i = 0; i < originEdges.size(); i++){
+			System.out.println("Edge " + i + ": (" + originEdges.get(i).getDistance() + ")");
+		}
+	}
+
+	public void aggregates(Scanner i){
+		while(i.hasNext()){
+			double lat = i.nextDouble();
+			double a = i.nextDouble();
+			double b = i.nextDouble();
+			double c = i.nextDouble();
+			double lon = i.nextDouble();
+			double weight = i.nextDouble();
+			double units = i.nextDouble();
+			double volume = i.nextDouble();
+			
+			//Call method to compare latitude and longitude with nodes
+			int edgeIndex = compare(originEdges, lat, lon);
+			
+			originEdges.get(edgeIndex).setVolume(weight);
+			originEdges.get(edgeIndex).setVolume(units);
+			originEdges.get(edgeIndex).setVolume(volume);
+			
+		}
+	}
+	
+	public int compare(ArrayList<Edges> sector, double latitude, double longitude){
+		for(int i = 0; i < sector.size(); i++){
+			if((sector.get(i).getTail().getLat() == latitude) && (sector.get(i).getTail().getLong() == longitude)){
+				return i;
+			}
+		}
+		return -1;
+	}
+}
+
